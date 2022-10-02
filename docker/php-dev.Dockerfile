@@ -53,4 +53,6 @@ ENV COMPOSER_MEMORY_LIMIT=-1
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 RUN /usr/local/bin/composer self-update
 
+USER 1000
+
 WORKDIR /var/www/app
