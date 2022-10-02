@@ -6,10 +6,10 @@ use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\Index;
 
 /**
- * @ORM\Entity(repositoryClass="App\Repository\MovieRepository")
- * @ORM\Table(name="movie", indexes={@Index(columns={"title"})})
+ * @ORM\Entity(repositoryClass="App\Repository\TrailerRepository")
+ * @ORM\Table(name="trailer", indexes={@Index(columns={"title"})})
  */
-final class Movie
+final class Trailer
 {
     /**
      * @ORM\Id()
@@ -21,7 +21,7 @@ final class Movie
     /**
      * @ORM\Column()
      */
-    private ?string $title;
+    private ?string $title = null;
 
     /**
      * @ORM\Column()

@@ -4,6 +4,6 @@ namespace App\Repository;
 
 use Doctrine\ORM\EntityRepository;
 
-class MovieRepository extends EntityRepository
+class TrailerRepository extends EntityRepository
 {
 }

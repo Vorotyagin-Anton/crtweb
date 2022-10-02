@@ -1,6 +1,5 @@
 <?php
 
-/** @var ContainerInterface $container */
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Slim\App;
@@ -11,6 +10,7 @@ use Slim\Middleware\ErrorMiddleware;
 use Slim\Middleware\RoutingMiddleware;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
+/** @var ContainerInterface $container */
 $container = require dirname(__DIR__) . '/bootstrap.php';
 $request = ServerRequestFactory::createFromGlobals();
 
