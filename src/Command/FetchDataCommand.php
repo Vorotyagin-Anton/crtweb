@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\Movie;
+use App\Entity\Trailer;
 use Doctrine\ORM\EntityManagerInterface;
 use GuzzleHttp\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -21,25 +21,24 @@ class FetchDataCommand extends Command
 
     protected static $defaultName = 'fetch:trailers';
 
-    private ClientInterface $httpClient;
-    private LoggerInterface $logger;
     private string $source;
-    private EntityManagerInterface $doctrine;
 
     /**
      * FetchDataCommand constructor.
      *
      * @param ClientInterface        $httpClient
      * @param LoggerInterface        $logger
-     * @param EntityManagerInterface $em
+     * @param EntityManagerInterface $doctrine
      * @param string|null            $name
      */
-    public function __construct(ClientInterface $httpClient, LoggerInterface $logger, EntityManagerInterface $em, string $name = null)
+    public function __construct(
+        private ClientInterface $httpClient,
+        private LoggerInterface $logger,
+        private EntityManagerInterface $doctrine,
+        string $name = null
+    )
     {
         parent::__construct($name);
-        $this->httpClient = $httpClient;
-        $this->logger = $logger;
-        $this->doctrine = $em;
     }
 
     public function configure(): void
@@ -52,15 +51,14 @@ class FetchDataCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->logger->info(sprintf('Start %s at %s', __CLASS__, (string) date_create()->format(DATE_ATOM)));
-        $source = self::SOURCE;
-        if ($input->getArgument('source')) {
-            $source = $input->getArgument('source');
-        }
+        $this->logger->info(sprintf('Start %s at %s', __CLASS__, date_create()->format(DATE_ATOM)));
+
+        $source = $input->getArgument('source') ?? self::SOURCE;
 
         if (!is_string($source)) {
             throw new RuntimeException('Source must be string');
         }
+
         $io = new SymfonyStyle($input, $output);
         $io->title(sprintf('Fetch data from %s', $source));
 
@@ -75,54 +73,79 @@ class FetchDataCommand extends Command
         $data = $response->getBody()->getContents();
         $this->processXml($data);
 
-        $this->logger->info(sprintf('End %s at %s', __CLASS__, (string) date_create()->format(DATE_ATOM)));
+        $this->logger->info(sprintf('End %s at %s', __CLASS__, date_create()->format(DATE_ATOM)));
 
         return 0;
     }
 
     protected function processXml(string $data): void
     {
-        $xml = (new \SimpleXMLElement($data))->children();
-//        $namespace = $xml->getNamespaces(true)['content'];
-//        dd((string) $xml->channel->item[0]->children($namespace)->encoded);
+        try {
+            $xml = (new \SimpleXMLElement($data))->children();
+        } catch (\Exception) {
+            throw new RuntimeException('Could not parse the xml from source');
+        }
 
         if (!property_exists($xml, 'channel')) {
             throw new RuntimeException('Could not find \'channel\' element in feed');
         }
+
+        // TODO: refactor this logic
+        $existingTrailers = $this->getAllTrailers();
+        $existingTrailersCount = count($existingTrailers);
+        $existingTrailerTitles = array_map(fn($trailer) => $trailer->getTitle(), $existingTrailers);
+
         foreach ($xml->channel->item as $item) {
-            $trailer = $this->getMovie((string) $item->title)
+            // TODO: seems like it is impossible to control this limit by constructing uri. But bet there is a better way.
+            if ($existingTrailersCount > 9) {
+                $this->logger->info('Movie Trailers count limit reached');
+                break;
+            }
+            // TODO: find a better way for parsing cdata
+            preg_match(
+                '/https[^<>]+jpg/',
+                $item->children('content', true)->asXML(),
+                $imageLinks
+            );
+
+            if (in_array($item->title, $existingTrailerTitles)) {
+                $this->logger->info('Movie Trailer found', ['title' => $item->title]);
+                continue;
+            }
+
+            $this->logger->info('Create new Movie Trailer', ['title' => $item->title]);
+            $trailer = new Trailer();
+            $trailer
                 ->setTitle((string) $item->title)
                 ->setDescription((string) $item->description)
                 ->setLink((string) $item->link)
-                ->setPubDate($this->parseDate((string) $item->pubDate))
+                ->setImage($imageLinks[0])
             ;
 
+            try {
+                $trailer->setPubDate($this->parseDate((string) $item->pubDate));
+            } catch (\Exception $e) {
+                $this->logger->warning($e->getMessage(), ['title' => $item->title]);
+            }
+
             $this->doctrine->persist($trailer);
+
+            $existingTrailersCount++;
         }
 
         $this->doctrine->flush();
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function parseDate(string $date): \DateTime
     {
         return new \DateTime($date);
     }
 
-    protected function getMovie(string $title): Movie
+    protected function getAllTrailers(): array
     {
-        $item = $this->doctrine->getRepository(Movie::class)->findOneBy(['title' => $title]);
-
-        if ($item === null) {
-            $this->logger->info('Create new Movie', ['title' => $title]);
-            $item = new Movie();
-        } else {
-            $this->logger->info('Move found', ['title' => $title]);
-        }
-
-        if (!($item instanceof Movie)) {
-            throw new RuntimeException('Wrong type!');
-        }
-
-        return $item;
+        return $this->doctrine->getRepository(Trailer::class)->findAll();
     }
 }
