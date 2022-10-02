@@ -4,3 +4,14 @@ main:
   controller: App\Controller\HomeController
   action: index
 
+trailers:
+  method: 'get'
+  path: trailers
+  controller: App\Controller\TrailerController
+  action: index
+
+trailer:
+  method: 'get'
+  path: trailers/{id}
+  controller: App\Controller\TrailerController
+  action: show
