@@ -1,0 +1,21 @@
+{% extends 'main.html.twig' %}
+
+{% block title %}{{ trailer.title }}{% endblock %}
+
+{% block content %}
+    <div class="container">
+        {% include 'menu.html' %}
+        <h1 class="mt-5 mb-4">{{ trailer.title }}</h1>
+        <table class="table table-bordered">
+            <tr>
+                <td>
+                    <p><a href="{{ trailer.link }}">Source</a></p>
+                    <p>{{ trailer.description }}</p>
+                    <p>Publication date: {{ trailer.pubDate | date("m/d/Y") }}</p>
+                </td>
+                <td><img src="{{ trailer.image }}" alt="img"></td>
+            </tr>
+        </table>
+        <a href="/trailers">Back to the list</a>
+    </div>
+{% endblock %}
