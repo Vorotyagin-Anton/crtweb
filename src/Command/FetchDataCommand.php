@@ -19,6 +19,8 @@ class FetchDataCommand extends Command
 {
     private const SOURCE = 'https://trailers.apple.com/trailers/home/rss/newtrailers.rss';
 
+    private const TRAILERS_LIMIT = 10;
+
     protected static $defaultName = 'fetch:trailers';
 
     private string $source;
@@ -97,16 +99,10 @@ class FetchDataCommand extends Command
 
         foreach ($xml->channel->item as $item) {
             // TODO: seems like it is impossible to control this limit by constructing uri. But bet there is a better way.
-            if ($existingTrailersCount > 9) {
+            if ($existingTrailersCount >= self::TRAILERS_LIMIT) {
                 $this->logger->info('Movie Trailers count limit reached');
                 break;
             }
-            // TODO: find a better way for parsing cdata
-            preg_match(
-                '/https[^<>]+jpg/',
-                $item->children('content', true)->asXML(),
-                $imageLinks
-            );
 
             if (in_array($item->title, $existingTrailerTitles)) {
                 $this->logger->info('Movie Trailer found', ['title' => $item->title]);
@@ -114,12 +110,20 @@ class FetchDataCommand extends Command
             }
 
             $this->logger->info('Create new Movie Trailer', ['title' => $item->title]);
+
+            // TODO: find a better way for parsing cdata
+            preg_match(
+                '/https[^<>]+jpg/',
+                $item->children('content', true)->asXML(),
+                $imageLinks
+            );
+
             $trailer = new Trailer();
             $trailer
                 ->setTitle((string) $item->title)
                 ->setDescription((string) $item->description)
                 ->setLink((string) $item->link)
-                ->setImage($imageLinks[0])
+                ->setImage($imageLinks[0] ?? null)
             ;
 
             try {
