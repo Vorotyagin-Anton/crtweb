@@ -16,25 +16,25 @@ final class Trailer
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private ?int $id;
+    private int $id;
 
     /**
      * @ORM\Column()
      */
-    private ?string $title = null;
+    private string $title;
 
     /**
      * @ORM\Column()
      */
-    private ?string $link;
+    private string $link;
 
     /**
      * @ORM\Column(type="text")
      */
-    private ?string $description;
+    private string $description;
 
     /**
-     * @ORM\Column(type="datetime", name="pub_date")
+     * @ORM\Column(type="datetime", name="pub_date", nullable=true)
      */
     private ?\DateTime $pubDate;
 
@@ -60,36 +60,36 @@ final class Trailer
         return $this->id;
     }
 
-    public function getTitle(): ?string
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    public function setTitle(?string $title): self
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    public function getLink(): ?string
+    public function getLink(): string
     {
         return $this->link;
     }
 
-    public function setLink(?string $link): self
+    public function setLink(string $link): self
     {
         $this->link = $link;
 
         return $this;
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(?string $description): self
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
